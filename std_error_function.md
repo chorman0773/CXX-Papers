@@ -21,6 +21,59 @@ This is currently not possible to do, without the use of compiler extensions, or
 However, many libraries could benefiet from this ability to do this for domain issues. A constexpr-based math library, for example, could call this function when sqrt is called with a negative input.
 A reference implementation is being developed in a fork of llvm-project, at <https://github.com/chorman0773/llvm-project>. It would implement the function proposed herein, as well as a compiler intrinsic which would be needed to provide the behavior of the function.
 
+### Motivating Examples
+
+Example with std::compiler_error
+```c++
+constexpr void throw_domain_error(std::string_view msg,std::source_location loc=std::source_location::current()){
+    if(std::is_constant_evaluated())
+	std::compiler_error(msg,loc);
+    else
+	throw std::domain_error{msg};
+}
+constexpr double pow_over_fact(double x,int n){
+    double accumulator{1};
+    for(int i = 0;i<n;i++)
+        accumulator *= x/i;
+}
+constexpr double sqrt(double x){
+    if(x<0)
+	throw_domain_error("sqrt of negative is undefined");
+    else{
+	double val{};
+	for(int i = 0;i<20;i++)
+	    val += pow_over_factorial(x-1,i);
+	return val;
+    }
+}
+```
+
+Example without std::compiler_error
+
+```c++
+void throw_domain_error(std::string_view msg,std::source_location loc){
+    throw std::domain_error{msg};
+}
+constexpr double pow_over_fact(double x,int n){
+    double accumulator{1};
+    for(int i = 0;i<n;i++)
+        accumulator *= x/i;
+}
+constexpr double sqrt(double x){
+    if(x<0)
+	throw_domain_error("sqrt of negative is undefined");
+    else{
+	double val{};
+	for(int i = 0;i<20;i++)
+	    val += pow_over_factorial(x-1,i);
+	return val;
+    }
+}
+```
+
+Without std::compiler_error, the error is only reported at runtime (if possibility evaluated at runtime). std::compiler_error allows a meaningful error to be reported at compile time, to reduce runtime errors.
+This is a generally trivial example. 
+
 ## IV. Impact on the Standard
 
 The function here is a purely an extension to the standard. 
@@ -41,6 +94,8 @@ namespace std{
 ...
 }
 ```
+
+
 
 If an expression E evaluates a call to std::compiler_error, where E is *manifestly constant evaluated* the program is ill-formed.
 The diagnostic message shall include the string passed as the parameter diag, and the source location indicated by location.
