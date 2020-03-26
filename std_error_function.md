@@ -1,7 +1,10 @@
 # std::compile_error function
 Document number: D0nnnnR0
+
 Date: 2020-03-25
+
 Project: Programming Language C++, Library Working Group
+
 Reply-To: Connor Horman <chorman64@gmail.com>
 
 ## I. Table of Contents
