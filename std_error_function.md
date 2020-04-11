@@ -21,7 +21,7 @@ This is currently not possible to do, without the use of compiler extensions, or
 However, many libraries could benefiet from this ability to do this for domain issues. A constexpr-based math library, for example, could call this function when sqrt is called with a negative input.
 A reference implementation is being developed in a fork of llvm-project, at <https://github.com/chorman0773/llvm-project>. It would implement the function proposed herein, as well as a compiler intrinsic which would be needed to provide the behavior of the function.
 
-### Motivating Examples
+### Motivating Example 1
 
 Example with std::compiler_error
 ```c++
@@ -46,6 +46,7 @@ constexpr double sqrt(double x){
 	return val;
     }
 }
+const double sqrtm2 = sqrt(-2); // Error: Call to std::compiler_error at line 13, sqrt:  "sqrt negative is undefined"
 ```
 
 Example without std::compiler_error
@@ -69,10 +70,40 @@ constexpr double sqrt(double x){
 	return val;
     }
 }
+const double sqrtm2 = sqrt(-2); // Throws std::domain_error what()="sqrt of negative is undefined" at runtime.
 ```
 
 Without std::compiler_error, the error is only reported at runtime (if possibility evaluated at runtime). std::compiler_error allows a meaningful error to be reported at compile time, to reduce runtime errors.
 This is a generally trivial example. 
+
+### Motivating Example 2
+
+Custom Error Messages
+
+```c++
+// constexpt_format has limited version of std::format, implemented in constexpr
+constexpr void throw_domain_error(std::string_view fmt,double val,std::source_location loc=std::source_location::current()){
+    if(std::is_constant_evaluated())
+	std::compiler_error(constexpr_format(fmt,val),loc);
+    else
+	throw std::domain_error{std::format(fmt,val)};
+}
+constexpr double sqrt(double x){
+    if(x<0)
+	throw_domain_error("sqrt({}) is not real",x);
+    else{
+	double val{};
+	for(int i = 0;i<20;i++)
+	    val += pow_over_factorial(x-1,i);
+	return val;
+    }
+}
+const double sqrtm2 = sqrt(-2); // Error: Call to std::compiler_error at line 13, sqrt: "sqrt(-2.0) is not real"
+const double sqrtm3 = sqrt(-3); // Error: Call to std::compiler_error at line 13, sqrt: "sqrt(-3.0) is not real"
+```
+
+This lends itself better to more complex cases, where multiple values are in play, as it could be easier to differentiate which value is the errorneous one. 
+There is currently no way to achieve this dynamically computed error message at compile-time, whatsoever.
 
 ## IV. Impact on the Standard
 
