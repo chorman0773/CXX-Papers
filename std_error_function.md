@@ -11,7 +11,9 @@ Reply-To: Connor Horman <chorman64@gmail.com>
 
 ## II. Introduction
 
-Neither the standard library nor the core language provides a method for a constant expression to report an error. This proposal allows constant expressions to do so, without complicating implementations.
+Neither the standard library nor the core language provides a method for a constant expression to report an error.
+ This proposal allows manifestly constant evaluated expressions to do so,
+ without complicating implementations.
 
 ## III. Motivation and Scope
 
