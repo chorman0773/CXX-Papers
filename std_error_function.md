@@ -27,9 +27,9 @@ A reference implementation is being developed in a fork of llvm-project, at <htt
 
 Example with std::compiler_error
 ```c++
-constexpr void throw_domain_error(std::string_view msg,std::source_location loc=std::source_location::current()){
+constexpr void throw_domain_error(std::string_view msg){
     if(std::is_constant_evaluated())
-	std::compiler_error(msg,loc);
+	std::compiler_error(msg);
     else
 	throw std::domain_error{msg};
 }
@@ -48,7 +48,7 @@ constexpr double sqrt(double x){
 	return val;
     }
 }
-const double sqrtm2 = sqrt(-2); // Error: Call to std::compiler_error at line 13, sqrt:  "sqrt negative is undefined"
+const double sqrtm2 = sqrt(-2); // Error: Call to std::compiler_error:  "sqrt negative is undefined"
 ```
 
 Example without std::compiler_error
@@ -76,7 +76,7 @@ const double sqrtm2 = sqrt(-2); // Throws std::domain_error what()="sqrt of nega
 ```
 
 Without std::compiler_error, the error is only reported at runtime (if possibility evaluated at runtime). std::compiler_error allows a meaningful error to be reported at compile time, to reduce runtime errors.
-This is a generally trivial example. 
+This is a generally trivial example, and can be solved by making sqrtm2 `constexpr` or `constinit` (with a less customizable error message). 
 
 ### Motivating Example 2
 
@@ -84,9 +84,9 @@ Custom Error Messages
 
 ```c++
 // constexpt_format has limited version of std::format, implemented in constexpr
-constexpr void throw_domain_error(std::string_view fmt,double val,std::source_location loc=std::source_location::current()){
+constexpr void throw_domain_error(std::string_view fmt,double val){
     if(std::is_constant_evaluated())
-	std::compiler_error(constexpr_format(fmt,val),loc);
+	std::compiler_error(constexpr_format(fmt,val));
     else
 	throw std::domain_error{std::format(fmt,val)};
 }
@@ -100,8 +100,8 @@ constexpr double sqrt(double x){
 	return val;
     }
 }
-const double sqrtm2 = sqrt(-2); // Error: Call to std::compiler_error at line 13, sqrt: "sqrt(-2.0) is not real"
-const double sqrtm3 = sqrt(-3); // Error: Call to std::compiler_error at line 13, sqrt: "sqrt(-3.0) is not real"
+const double sqrtm2 = sqrt(-2); // Error: Call to std::compiler_error: "sqrt(-2.0) is not real"
+const double sqrtm3 = sqrt(-3); // Error: Call to std::compiler_error: "sqrt(-3.0) is not real"
 ```
 
 This lends itself better to more complex cases, where multiple values are in play, as it could be easier to differentiate which value is the errorneous one. 
@@ -123,15 +123,13 @@ Function Specification std::compiler_error
 Header <diagnostic>
 namespace std{
 ...
-    constexpr void compiler_error(std::string_view diag,std::source_location location=std::source_location::current()) noexcept;
+    constexpr void compiler_error(std::string_view diag) noexcept;
 ...
 }
 ```
 
-
-
 If an expression E evaluates a call to std::compiler_error, where E is *manifestly constant evaluated* the program is ill-formed.
-The diagnostic message shall include the string passed as the parameter diag, and the source location indicated by location.
+The diagnostic message shall include the string passed as the parameter diag.
 
 If E is not *manifestly constant evaluated* the behavior is undefined.
 
